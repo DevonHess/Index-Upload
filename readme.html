@@ -1,0 +1,131 @@
+<html>
+	<body>
+		<script>
+			icons = document.getElementsByTagName('table')[0].getElementsByTagName('img');
+			function getIcons()
+			{
+
+				for (i = 2; i < icons.length; i++)
+				{
+					file = icons[i].parentNode.parentNode.childNodes[1].childNodes[0].getAttribute("href");
+					switch (file.replace(/.*\.(.*)/,'$1').toLowerCase())
+					{
+						case "gif":
+						case "ico":
+						case "jpeg":
+						case "jpg":
+						case "png":
+							icons[i].setAttribute('src','/icons/blank.gif');
+							icons[i].style = 'background-size: cover; background-position: center; background-image: url(' + file + ');';
+					}
+				}
+			}
+			getIcons();
+
+			function selectAll(e)
+			{
+				checkboxes = document.getElementsByClassName('checkbox');
+				for (i = 0; i < checkboxes.length; i++)
+				{
+					checkboxes[i].checked = e.checked;
+				}
+			}
+
+			function selectFiles()
+			{
+				if (icons.length > 2)
+				{
+					icons[0].parentNode.appendChild(document.createElement("input")).outerHTML = '<input class="checkbox" type="checkbox" style="margin-top: 6px; position: absolute; left: 11px;" onclick="selectAll(this)">';
+					for (i = 2; i < icons.length; i++)
+					{
+						icons[i].parentNode.appendChild(document.createElement("input")).outerHTML = '<input class="checkbox" type="checkbox" style="margin-top: 6px; position: absolute; left: 11px;">';
+					}
+					document.getElementById('delete').setAttribute('onclick','deleteFiles(); return false;');
+				}
+			}
+
+			function deleteFiles()
+			{
+				checkboxes = document.getElementsByClassName('checkbox');
+				checkboxes[0].parentNode.removeChild(checkboxes[0]);
+				files = [];
+				while(checkboxes[0])
+				{
+					if (checkboxes[0].checked == true)
+					{
+						files.push(checkboxes[0].parentNode.parentNode.childNodes[1].childNodes[0].getAttribute("href").replace(/\&/g,'%26').replace(/\+/g,'%2B'));
+					}
+					checkboxes[0].parentNode.removeChild(checkboxes[0]);
+				}
+				if (files.length > 0)
+				{
+					location.href = './scripts/delete.php?f='+JSON.stringify(files);
+				}
+				else
+				{
+					document.getElementById('delete').setAttribute('onclick','selectFiles(); return false;');
+				}
+			}
+
+			function uploadFiles(files)
+			{
+				if (files.length > 0)
+				{
+					document.getElementById("fileslabel").innerHTML = 'Uploading';
+					xhr = new XMLHttpRequest();
+					formData = new FormData();
+					xhr.open("POST", "./scripts/upload.php", true);
+					xhr.setRequestHeader('X-Requested-With','XMLHttpRequest');
+					xhr.onreadystatechange=function()
+					{
+						if (xhr.readyState==4 && xhr.status==200)
+						{
+							location.href = '.';
+						}
+
+					}
+					xhr.upload.addEventListener('progress', function(event)
+					{
+						if (event.lengthComputable)
+						{
+							percent = event.loaded / event.total;
+							document.getElementById("submitlabel").innerHTML = Math.round(percent*100) + '%';
+							document.getElementById("upload").childNodes[0].childNodes[0].setAttribute('src', '/icons/pie' + Math.round(percent*8) + '.gif');
+						}
+					});
+					for (file in files)
+					{
+						formData.append("upload[]", files[file]);
+					}
+					xhr.send(formData);
+				}
+			}
+
+			function getSpace()
+			{
+				aj=new XMLHttpRequest();
+				aj.onreadystatechange=function()
+				{
+					if (aj.readyState==4 && aj.status==200)
+					{
+						space = JSON.parse(aj.responseText);
+						document.getElementById("space").childNodes[3].innerHTML = space.freeFormated[0] + space.freeFormated[1] + ' / ' + space.totalFormated[0] + space.totalFormated[1];
+					}
+				}
+				aj.open("GET", "./scripts/space.php", true);
+				aj.send();
+			}
+			getSpace();
+		</script>
+		<input id="files" type="file" multiple="" onchange="document.getElementById('filenumber').innerHTML = (this.files.length > 0) ? ((this.files.length > 1) ? this.files.length + ' files' : this.files[0].name) : '';" style="display: none"/>
+		<input id="submit" type="button" value="Submit" onclick="uploadFiles(document.getElementById('files').files)" style="display: none"/>
+		<table>
+			<tbody>
+				<tr id="upload"><td valign="top"><img src="/icons/index.gif" alt="[UPLOAD]"></td><td id="fileslabel"><a href="."><label for="files" style="cursor: pointer;">Choose Files</label></a></td><td id="filenumber" align="right"></td><td id="submitlabel" align="right"><a href="."><label for="submit" style="cursor: pointer;">Submit</label></a></td></tr>
+				<tr><td valign="top"><img src="/icons/bomb.gif" alt="[DELETE]"></td><td><a id="delete" href="." onclick="selectFiles(); return false;">Delete</a></td></tr>
+				<tr id="space"><td valign="top"><img src="/icons/diskimg.gif" alt="[SPACE]"></td><td><a href="ftp://devonhess.org/Server/public/">Space</a></td><td align="right"></td><td align="right">-</td></tr>
+				<tr><th colspan="5"><hr></th></tr>
+			</tbody>
+		</table>
+	</body>
+</html>
